@@ -1,0 +1,110 @@
+
+//
+
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <iostream>
+using namespace std;
+using namespace cv;
+
+
+IplImage* doPyrDown(IplImage* in, int filter = IPL_GAUSSIAN_5x5) 
+{
+ // Best to make sure input image is divisible by two.
+ //
+ assert( in->width%2 == 0 && in->height%2 == 0 );
+ IplImage* out = cvCreateImage( cvSize( in->width/2, in->height/2 ), in->depth, in->nChannels );
+ cvPyrDown( in, out );
+ return( out );
+};
+
+
+// Convert a video to grayscale
+ // argv[1]: input video file
+ // argv[2]: name of new output file
+ //
+#include <cv.h>
+#include <highgui.h>
+main( int argc, char* argv[] ) {
+ CvCapture* capture = 0;
+ capture = cvCreateFileCapture( argv[1] );
+ if(!capture){
+ return -1;
+ }
+ IplImage *bgr_frame=cvQueryFrame(capture);//Init the video read
+ double fps = cvGetCaptureProperty (
+ capture,
+ CV_CAP_PROP_FPS
+ );
+ CvSize size = cvSize(
+ (int)cvGetCaptureProperty( capture, CV_CAP_PROP_FRAME_WIDTH),
+ (int)cvGetCaptureProperty( capture, CV_CAP_PROP_FRAME_HEIGHT)
+ );
+ CvVideoWriter *writer = cvCreateVideoWriter(
+ argv[2],
+ CV_FOURCC(‘M’,‘J’,‘P’,‘G’),
+ fps,
+ size
+ );
+ IplImage* logpolar_frame = cvCreateImage(
+ size,
+ IPL_DEPTH_8U,
+ 3
+ );
+ while( (bgr_frame=cvQueryFrame(capture)) != NULL ) {
+ cvLogPolar( bgr_frame, logpolar_frame,
+ cvPoint2D32f(bgr_frame->width/2,
+ bgr_frame->height/2),
+ 40,
+ CV_INTER_LINEAR+CV_WARP_FILL_OUTLIERS );
+ cvWriteFrame( writer, logpolar_frame );
+ }
+ cvReleaseVideoWriter( &writer );
+ cvReleaseImage( &logpolar_frame );
+ cvReleaseCapture( &capture );
+ return(0);
+}
+
+int main()
+{
+	VideoCapture cap(0); // open the default camera
+	if (!cap.isOpened())  // check if we succeeded
+		return -1;
+
+	Size S = Size((int)cap.get(CV_CAP_PROP_FRAME_WIDTH),    // Acquire input size
+			(int)cap.get(CV_CAP_PROP_FRAME_HEIGHT));
+
+	VideoWriter outputVideo;    // open the output
+	outputVideo.open("Record.avi", -1, cap.get(CV_CAP_PROP_FPS), S, true);
+
+	// For Windows, if the above does not work, use the following command instead:
+	// outputVideo.open("Record.avi", CV_FOURCC('D', 'I', 'V', '3'), cap.get(CV_CAP_PROP_FPS), S, true);
+	// For MAC OS, if the above does not work, use the following instruction instead:
+	// outputVideo.open("Record.avi", CV_FOURCC('S', 'V', 'Q', '3'), 30.0, S, true);
+
+	if (!outputVideo.isOpened())
+	{
+		cout << "Could not open the output video for write: " << endl;
+		return -1;
+	}
+
+	namedWindow("Video", 1);
+	cout << "Start Reading and Writing" << endl;
+
+	int cnt = 0;
+	while (cnt<200)
+	{
+		Mat frame;
+		cap >> frame; // get a new frame from camera
+		outputVideo << frame;  // store the frame to the output video file
+
+		imshow("Video", frame);
+		if (waitKey(30) >= 0) break;
+		cnt++;
+	}
+	// the camera will be deinitialized automatically in VideoCapture destructor
+	cout << "Finished Writing" << endl;
+
+	return 0;
+
+}
