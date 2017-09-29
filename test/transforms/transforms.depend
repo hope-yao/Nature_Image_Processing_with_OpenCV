@@ -1,0 +1,7 @@
+# depslib dependency file v1.0
+1506710128 source:/home/exx/Documents/Hope/Nature_Image_Processing_with_OpenCV/transforms/transforms/main.cpp
+	"opencv2/imgproc/imgproc.hpp"
+	"opencv2/highgui/highgui.hpp"
+	<stdlib.h>
+	<stdio.h>
+
